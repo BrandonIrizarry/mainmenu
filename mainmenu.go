@@ -6,20 +6,25 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-type Model struct{}
-
-// Package-local state. I prefer to have this here, rather than stuff
-// everything inside the model struct, which I reserve for
-// 1. attaching the [tea.Model] interface methods, and 2. exporting
-// final state to the model client.
-var (
+type Model struct {
 	cursorPos    int
 	maxCursorPos int
 	choices      []string
-)
+	models       []tea.Model
+}
 
-func (m Model) New(cs []string) {
-	choices = cs
+func New() Model {
+	choices := []string{
+		"Chat UI",
+		"Select assets (files, project directories)",
+		"Select LLM model",
+		"Exit",
+	}
+
+	return Model{
+		choices:      choices,
+		maxCursorPos: len(choices) - 1,
+	}
 }
 
 // The following methods implement the [tea.Model] interface.
@@ -37,22 +42,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyEnter:
 			// FIXME: the actual model management will
 			// start here.
-			return m, tea.Quit
+			if m.cursorPos == m.maxCursorPos {
+				return m, tea.Quit
+			}
 
 		case tea.KeyDown:
-			cursorPos++
+			m.cursorPos++
 
 			// Wrap back to the top if necessary.
-			if cursorPos >= maxCursorPos {
-				cursorPos = 0
+			if m.cursorPos > m.maxCursorPos {
+				m.cursorPos = 0
 			}
 
 		case tea.KeyUp:
-			cursorPos--
+			m.cursorPos--
 
 			// Wrap back to the bottom if necessary.
-			if cursorPos < 0 {
-				cursorPos = maxCursorPos
+			if m.cursorPos < 0 {
+				m.cursorPos = m.maxCursorPos
 			}
 		}
 	}
@@ -63,13 +70,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m Model) View() string {
 	s := strings.Builder{}
 
-	for i := range len(choices) {
-		if cursorPos == i {
+	for i := range len(m.choices) {
+		if m.cursorPos == i {
 			s.WriteString("(•) ")
 		} else {
 			s.WriteString("( ) ")
 		}
-		s.WriteString(choices[i])
+		s.WriteString(m.choices[i])
 		s.WriteString("\n")
 	}
 
